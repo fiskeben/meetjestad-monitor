@@ -21,6 +21,7 @@ func sendMail(sensorID, recipient string, lastSeen time.Time) error {
 	}
 
 	mg := mailgun.NewMailgun(domain, apiKey)
+	mg.SetAPIBase("https://api.eu.mailgun.net/v3")
 
 	formattedDate := lastSeen.Format(time.RFC822)
 
