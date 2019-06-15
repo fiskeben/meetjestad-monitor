@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -10,18 +11,27 @@ import (
 	"github.com/mailgun/mailgun-go/v3"
 )
 
+type mailer struct {
+	mg mailgun.Mailgun
+}
+
 const (
 	domain = "monitoring.meetjescraper.online"
 )
 
-func sendMail(sensorID, recipient string, lastSeen time.Time) error {
+func newMailer() (mailer, error) {
 	apiKey := os.Getenv("MEETJESCRAPER_MAILGUN_API_KEY")
 	if apiKey == "" {
-		panic("missing Mailgun API key (set MEETJESCRAPER_MAILGUN_API_KEY environment variable")
+		return mailer{}, errors.New("missing Mailgun API key (set MEETJESCRAPER_MAILGUN_API_KEY environment variable")
 	}
 
 	mg := mailgun.NewMailgun(domain, apiKey)
 	mg.SetAPIBase("https://api.eu.mailgun.net/v3")
+
+	return mailer{mg: mg}, nil
+}
+
+func sendMail(m mailer, sensorID, recipient string, lastSeen time.Time) error {
 
 	formattedDate := lastSeen.Format(time.RFC822)
 
@@ -41,12 +51,12 @@ Regards,
 
 The Meetjestad battery robot`, sensorID, formattedDate)
 
-	message := mg.NewMessage(sender, subject, body, recipient)
+	message := m.mg.NewMessage(sender, subject, body, recipient)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	resp, id, err := mg.Send(ctx, message)
+	resp, id, err := m.mg.Send(ctx, message)
 
 	if err != nil {
 		return err

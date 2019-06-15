@@ -1,6 +1,7 @@
 PHONY: clean
 
 meetjebatterij:$(shell find . -name "*.go")
+	go mod download
 	go build .
 
 dist:

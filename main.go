@@ -21,9 +21,21 @@ type Reading struct {
 
 // Config holds the configuration for the service.
 type Config struct {
-	Threshold     float32
-	Frequency     time.Duration
+	Service       Service
 	Subscriptions []Subscription
+}
+
+// Service stores the configurations for the service itself.
+type Service struct {
+	Threshold float32
+	Frequency time.Duration
+	Mailer    MailerConfig
+}
+
+// MailerConfig stores configuration for Mailgun.
+type MailerConfig struct {
+	Domain  string
+	APIBase string
 }
 
 // Subscription represents a sensor to monitor and an email address to send alarms to.
@@ -39,8 +51,14 @@ type Alarm struct {
 }
 
 var defaultConfig = Config{
-	Threshold:     3.33,
-	Frequency:     time.Duration(3600000000000),
+	Service: Service{
+		Threshold: 3.33,
+		Frequency: time.Duration(3600000000000),
+		Mailer: MailerConfig{
+			Domain:  "monitoring.meetjescraper.online",
+			APIBase: "https://api.eu.mailgun.net/v3",
+		},
+	},
 	Subscriptions: make([]Subscription, 0, 0),
 }
 
@@ -52,12 +70,17 @@ func main() {
 
 	alarms := make([]Alarm, 0, 10)
 
-	// check all sensors at start, otherwise it will wait until the first tick
-	if err := checkSensors(config.Subscriptions, config.Threshold, alarms); err != nil {
+	m, err := newMailer()
+	if err != nil {
 		panic(err)
 	}
 
-	ticker := time.NewTicker(config.Frequency)
+	// check all sensors at start, otherwise it will wait until the first tick
+	if err := checkSensors(m, config.Subscriptions, config.Service.Threshold, alarms); err != nil {
+		panic(err)
+	}
+
+	ticker := time.NewTicker(config.Service.Frequency)
 
 	// listen to the tick and check the sensors
 	for {
@@ -70,7 +93,7 @@ func main() {
 				log.Printf("config error, unable to continue, please fix the error first: %v", err)
 				continue
 			}
-			if err := checkSensors(config.Subscriptions, config.Threshold, alarms); err != nil {
+			if err := checkSensors(m, config.Subscriptions, config.Service.Threshold, alarms); err != nil {
 				log.Println(err)
 			}
 		}
@@ -88,11 +111,14 @@ func readConfig() (Config, error) {
 		return defaultConfig, err
 	}
 
-	if c.Threshold == 0 {
-		c.Threshold = defaultConfig.Threshold
+	if c.Service.Threshold == 0 {
+		c.Service.Threshold = defaultConfig.Service.Threshold
 	}
-	if c.Frequency == 0 {
-		c.Frequency = defaultConfig.Frequency
+	if c.Service.Frequency == 0 {
+		c.Service.Frequency = defaultConfig.Service.Frequency
+	}
+	if c.Service.Mailer.Domain == "" {
+		c.Service.Mailer.Domain = defaultConfig.Service.Mailer.Domain
 	}
 	if c.Subscriptions == nil {
 		c.Subscriptions = make([]Subscription, 0, 0)
@@ -101,7 +127,7 @@ func readConfig() (Config, error) {
 	return c, nil
 }
 
-func checkSensors(subscriptions []Subscription, threshold float32, alarms []Alarm) error {
+func checkSensors(m mailer, subscriptions []Subscription, threshold float32, alarms []Alarm) error {
 	for _, s := range subscriptions {
 		r, err := readSensor(s.SensorID)
 		if err != nil {
@@ -109,7 +135,7 @@ func checkSensors(subscriptions []Subscription, threshold float32, alarms []Alar
 		}
 		if r.Voltage < threshold && !isAlerted(alarms, r.SensorID) {
 			log.Printf("voltage is below threshold: %v < %v", r.Voltage, threshold)
-			if err := sendMail(s.SensorID, s.EmailAddress, r.Date); err != nil {
+			if err := sendMail(m, s.SensorID, s.EmailAddress, r.Date); err != nil {
 				return fmt.Errorf("failed to send mail: %v", err)
 			}
 			alarms = append(alarms, Alarm{SensorID: r.SensorID, RaisedAt: time.Now()})
