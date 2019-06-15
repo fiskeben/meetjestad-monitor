@@ -38,6 +38,12 @@ type Alarm struct {
 	RaisedAt time.Time
 }
 
+var defaultConfig = Config{
+	Threshold:     3.33,
+	Frequency:     time.Duration(3600000000000),
+	Subscriptions: make([]Subscription, 0, 0),
+}
+
 func main() {
 	config, err := readConfig()
 	if err != nil {
@@ -61,8 +67,7 @@ func main() {
 			var err error
 			config, err = readConfig()
 			if err != nil {
-				log.Printf("config has an error: %v", err)
-				log.Println("unable to continue, please fix the error first")
+				log.Printf("config error, unable to continue, please fix the error first: %v", err)
 				continue
 			}
 			if err := checkSensors(config.Subscriptions, config.Threshold, alarms); err != nil {
@@ -73,17 +78,45 @@ func main() {
 }
 
 func readConfig() (Config, error) {
-	var c Config
 	b, err := ioutil.ReadFile("config.yaml")
 	if err != nil {
-		return c, err
+		return defaultConfig, err
 	}
 
+	var c Config
 	if err = yaml.Unmarshal(b, &c); err != nil {
-		return c, err
+		return defaultConfig, err
+	}
+
+	if c.Threshold == 0 {
+		c.Threshold = defaultConfig.Threshold
+	}
+	if c.Frequency == 0 {
+		c.Frequency = defaultConfig.Frequency
+	}
+	if c.Subscriptions == nil {
+		c.Subscriptions = make([]Subscription, 0, 0)
 	}
 
 	return c, nil
+}
+
+func checkSensors(subscriptions []Subscription, threshold float32, alarms []Alarm) error {
+	for _, s := range subscriptions {
+		r, err := readSensor(s.SensorID)
+		if err != nil {
+			return err
+		}
+		if r.Voltage < threshold && !isAlerted(alarms, r.SensorID) {
+			log.Printf("voltage is below threshold: %v < %v", r.Voltage, threshold)
+			if err := sendMail(s.SensorID, s.EmailAddress, r.Date); err != nil {
+				return fmt.Errorf("failed to send mail: %v", err)
+			}
+			alarms = append(alarms, Alarm{SensorID: r.SensorID, RaisedAt: time.Now()})
+		}
+	}
+
+	return nil
 }
 
 func readSensor(sensorID string) (Reading, error) {
@@ -96,7 +129,6 @@ func readSensor(sensorID string) (Reading, error) {
 		return Reading{}, err
 	}
 
-	log.Println("got response")
 	defer res.Body.Close()
 	var data []Reading
 	d := json.NewDecoder(res.Body)
@@ -108,31 +140,7 @@ func readSensor(sensorID string) (Reading, error) {
 		return Reading{Voltage: 999}, nil
 	}
 
-	r := data[0]
-	log.Printf("decoded response: %v", r)
-	return r, nil
-}
-
-func checkSensors(subscriptions []Subscription, threshold float32, alarms []Alarm) error {
-
-	for _, s := range subscriptions {
-		r, err := readSensor(s.SensorID)
-		if err != nil {
-			return err
-		}
-		if r.Voltage < threshold {
-			log.Printf("voltage is below threshold: %v", r.Voltage)
-			if isAlerted(alarms, r.SensorID) {
-				continue
-			}
-			if err := sendMail(s.SensorID, s.EmailAddress, r.Date); err != nil {
-				return err
-			}
-			alarms = append(alarms, Alarm{SensorID: r.SensorID, RaisedAt: time.Now()})
-		}
-	}
-
-	return nil
+	return data[0], nil
 }
 
 func isAlerted(alarms []Alarm, sensorID string) bool {
