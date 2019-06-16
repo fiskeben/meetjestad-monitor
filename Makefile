@@ -5,7 +5,8 @@ meetjebatterij:$(shell find . -name "*.go")
 	go build .
 
 dist:
-	GOOS=linux go build -o meetjebatterij-linux .
+	go mod download
+	GOOS=linux go build -tags netgo -ldflags '-w -s' -o meetjebatterij-linux .
 
 clean:meetjebatterij
 	rm meetjebatterij
