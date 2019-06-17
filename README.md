@@ -1,14 +1,20 @@
 # meetjebatterij
 
-A battery monitoring service for
+A health monitoring service for
 [Meet je stad](http://meetjestad.net)
 weather stations.
 
 ## Features
 
 The service will query a number of sensors at a given frequency
-and send an email to the sensor's owner if the battery voltage
-is below a certain threshold.
+and send an email to the sensor's owner if one of the sensor's
+vitals is critical.
+
+The following data is monitored:
+
+* Has the sensor sent any messages in the last six hours?
+* Is the sensor's battery voltage running low (<3.26V, configurable)?
+* Does the sensor report its location (i.e. do the messages include GPS data)?
 
 The only dependency is an active
 [Mailgun](https://mailgun.com)
