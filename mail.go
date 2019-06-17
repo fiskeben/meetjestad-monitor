@@ -31,8 +31,7 @@ func newMailer() (mailer, error) {
 	return mailer{mg: mg}, nil
 }
 
-func sendMail(m mailer, sensorID, recipient string, lastSeen time.Time) error {
-
+func raiseVoltageAlarm(m mailer, sensorID, recipient string, lastSeen time.Time) error {
 	formattedDate := lastSeen.Format(time.RFC822)
 
 	sender := "alert@monitoring.meetjescraper.online"
@@ -49,9 +48,54 @@ the sensor going offline.
 -- 
 Regards,
 
-The Meetjestad battery robot`, sensorID, formattedDate)
+The Meetjestad monitoring robot`, sensorID, formattedDate)
 
-	message := m.mg.NewMessage(sender, subject, body, recipient)
+	return sendMail(m, recipient, sender, subject, body)
+}
+
+func raiseOutageAlarm(m mailer, sensorID, recipient string, lastSeen time.Time) error {
+	formattedDate := lastSeen.Format(time.RFC822)
+
+	sender := "alert@monitoring.meetjescraper.online"
+	subject := "Meetjestad station is offline"
+	body := fmt.Sprintf(`Hi,
+
+This is an automated message to tell you that your sensor with ID %s seems to be offline.
+
+It was last seen at %s.
+
+-- 
+Regards,
+
+The Meetjestad monitoring robot`, sensorID, formattedDate)
+
+	return sendMail(m, recipient, sender, subject, body)
+}
+
+func raiseGPSmissingAlarm(m mailer, sensorID, recipient string, lastSeen time.Time) error {
+	formattedDate := lastSeen.Format(time.RFC822)
+
+	sender := "alert@monitoring.meetjescraper.online"
+	subject := "Meetjestad station is missing GPS lock"
+	body := fmt.Sprintf(`Hi,
+
+This is an automated message to tell you that your sensor with ID %s is missing GPS lock.
+
+This applies to the latest message which was received at %s.
+
+You should make sure that your weather station has a clear view of the sky
+and perhaps also attempt to reset it while outdoors.
+
+-- 
+Regards,
+
+The Meetjestad monitoring robot`, sensorID, formattedDate)
+
+	return sendMail(m, recipient, sender, subject, body)
+}
+
+func sendMail(m mailer, to, from, subject, body string) error {
+	message := m.mg.NewMessage(from, subject, body, to)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()

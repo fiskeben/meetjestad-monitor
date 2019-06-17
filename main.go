@@ -17,6 +17,13 @@ type Reading struct {
 	Date     time.Time `json:"date"`
 	Voltage  float32   `json:"voltage"`
 	Firmware string    `json:"firmware_version"`
+	Position Position  `json:"coordinates"`
+}
+
+// Position is a coordinate with latitude and longitude.
+type Position struct {
+	Lat float32 `json:"lat"`
+	Lng float32 `json:"lng"`
 }
 
 // Config holds the configuration for the service.
@@ -46,8 +53,9 @@ type Subscription struct {
 
 // Alarm represents a sensor that was below the threshold and an email has been sent.
 type Alarm struct {
-	SensorID string
-	RaisedAt time.Time
+	offline    time.Time
+	gpsMissing time.Time
+	lowVoltage time.Time
 }
 
 var defaultConfig = Config{
@@ -68,7 +76,7 @@ func main() {
 		panic(err)
 	}
 
-	alarms := make([]Alarm, 0, 10)
+	alarms := make(map[string]Alarm)
 
 	m, err := newMailer()
 	if err != nil {
@@ -127,19 +135,48 @@ func readConfig() (Config, error) {
 	return c, nil
 }
 
-func checkSensors(m mailer, subscriptions []Subscription, threshold float32, alarms []Alarm) error {
+func checkSensors(m mailer, subscriptions []Subscription, threshold float32, alarms map[string]Alarm) error {
+	log.Printf("checking %d sensors", len(subscriptions))
+	now := time.Now()
 	for _, s := range subscriptions {
+		log.Printf("checking %s", s.SensorID)
 		r, err := readSensor(s.SensorID)
 		if err != nil {
 			return err
 		}
-		if r.Voltage < threshold && !isAlerted(alarms, r.SensorID) {
-			log.Printf("voltage is below threshold: %v < %v", r.Voltage, threshold)
-			if err := sendMail(m, s.SensorID, s.EmailAddress, r.Date); err != nil {
+
+		log.Printf("sensor data %v", r)
+
+		alarm, ok := alarms[r.SensorID]
+		if !ok {
+			alarm = Alarm{}
+		}
+
+		if diff := now.Sub(r.Date); diff.Hours() > 6 && alarm.offline.IsZero() {
+			log.Printf("sensor is offline for %v", diff)
+			if err := raiseOutageAlarm(m, s.SensorID, s.EmailAddress, r.Date); err != nil {
 				return fmt.Errorf("failed to send mail: %v", err)
 			}
-			alarms = append(alarms, Alarm{SensorID: r.SensorID, RaisedAt: time.Now()})
+			alarm.offline = now
+			continue // No need to check the rest and potentially spam the recipient
 		}
+
+		if r.Voltage < threshold && alarm.lowVoltage.IsZero() {
+			log.Printf("voltage is below threshold: %v < %v", r.Voltage, threshold)
+			if err := raiseVoltageAlarm(m, s.SensorID, s.EmailAddress, r.Date); err != nil {
+				return fmt.Errorf("failed to send mail: %v", err)
+			}
+			alarm.lowVoltage = now
+		}
+
+		if r.Position.Lat == 0 && r.Position.Lng == 0 && alarm.gpsMissing.IsZero() {
+			log.Printf("sensor is missing GPS lock: %v", r.Position)
+			if err := raiseGPSmissingAlarm(m, s.SensorID, s.EmailAddress, r.Date); err != nil {
+				return fmt.Errorf("failed to send mail: %v", err)
+			}
+			alarm.gpsMissing = now
+		}
+		alarms[r.SensorID] = alarm
 	}
 
 	return nil
@@ -167,13 +204,4 @@ func readSensor(sensorID string) (Reading, error) {
 	}
 
 	return data[0], nil
-}
-
-func isAlerted(alarms []Alarm, sensorID string) bool {
-	for _, a := range alarms {
-		if a.SensorID == sensorID {
-			return true
-		}
-	}
-	return false
 }
