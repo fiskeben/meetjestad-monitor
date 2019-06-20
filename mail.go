@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -15,18 +14,36 @@ type mailer struct {
 	mg mailgun.Mailgun
 }
 
+type logMailer struct {
+	mailgun.Mailgun
+	instance *mailgun.MailgunImpl
+}
+
+func (l logMailer) NewMessage(from, subject, text string, to ...string) *mailgun.Message {
+	return l.instance.NewMessage(from, subject, text, to...)
+}
+
+func (l logMailer) Send(ctx context.Context, m *mailgun.Message) (string, string, error) {
+	log.Println("sending dummy mail", m)
+	return "ok", "ok", nil
+}
+
 const (
 	domain = "monitoring.meetjescraper.online"
 )
 
 func newMailer() (mailer, error) {
+	var mg mailgun.Mailgun
+
 	apiKey := os.Getenv("MEETJESCRAPER_MAILGUN_API_KEY")
 	if apiKey == "" {
-		return mailer{}, errors.New("missing Mailgun API key (set MEETJESCRAPER_MAILGUN_API_KEY environment variable")
+		log.Println("missing Mailgun API key (set MEETJESCRAPER_MAILGUN_API_KEY environment variable)")
+		log.Println("printing mails to log instead")
+		mg = logMailer{instance: mailgun.NewMailgun("", "")}
+	} else {
+		mg = mailgun.NewMailgun(domain, apiKey)
+		mg.SetAPIBase("https://api.eu.mailgun.net/v3")
 	}
-
-	mg := mailgun.NewMailgun(domain, apiKey)
-	mg.SetAPIBase("https://api.eu.mailgun.net/v3")
 
 	return mailer{mg: mg}, nil
 }
