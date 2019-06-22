@@ -16,9 +16,10 @@ The following data is monitored:
 * Is the sensor's battery voltage running low (<3.26V, configurable)?
 * Does the sensor report its location (i.e. do the messages include GPS data)?
 
-The only dependency is an active
-[Mailgun](https://mailgun.com)
-account.
+Data about sensors and raised alarms is stored in
+[Firebase](https://firebase.google.com)
+and e-mails are sent with
+[Mailgun](https://mailgun.com).
 
 ## Building
 
@@ -37,15 +38,10 @@ and put it in the same directory as the binary.
 The structure of the file is like this:
 
 ```yaml
-service:
-  threshold: 3.35 # sensors with a lower voltage than this will trigger alarm
-  frequency: 1h # duration to wait between checks
-  mailer:
-    domain: yourdomain.com # the domain Mailgun is configured for
-    apibase: "https://api.eu.mailgun.net/v3" # for non-US domains
-subscriptions: # a list of sensor IDs to monitor and e-mail addresses to send alarms to
-  - sensorid: 123
-    emailaddress: you@example.com
+frequency: 1h # duration to wait between checks
+mailer:
+  domain: yourdomain.com # the domain Mailgun is configured for
+  apibase: "https://api.eu.mailgun.net/v3" # for non-US domains
 ```
 
 The `frequency` is a Go `time.Duration` string.
@@ -71,6 +67,40 @@ All of these values can be found on the domain's page in Mailgun.
 
 The API key must be set as an environment variable called
 `MEETJESCRAPER_MAILGUN_API_KEY`.
+If you leave it out, mails are printed to the log.
+This can be useful for testing.
+
+### Firestore
+
+To give the service access to Firestore
+you need to set up a service account
+keep the config file in the same folder as the binary.
+Name the file `serviceaccount.json`.
+
+The service requires two collections:
+
+* sensors:
+  ```
+  sensor_id     string
+  threshold     number
+  email_address string
+  ```
+* alarms:
+  ```
+  gps     time
+  offline time
+  voltage time
+  ```
+
+#### Sensors
+
+The `threshold` field is the value of battery voltage level
+that will trigger an alarm.
+
+#### Alarms
+
+All fields are timestamps indicating when the type last
+triggered an alarm.
 
 ### Running
 
