@@ -114,7 +114,8 @@ func checkSensors(m mailer, collection *firestore.CollectionRef, subscriptions [
 			continue
 		}
 
-		if diff := now.Sub(r.Date); diff.Hours() > 6 && a.Offline.IsZero() {
+		age := now.Sub(a.Offline)
+		if diff := now.Sub(r.Date); diff.Hours() > 6 && age.Hours() > 24 {
 			log.Printf("sensor is offline for %v", diff)
 			if err := raiseOutageAlarm(m, s.SensorID, s.EmailAddress, r.Date); err != nil {
 				return fmt.Errorf("failed to send mail: %v", err)
@@ -126,22 +127,31 @@ func checkSensors(m mailer, collection *firestore.CollectionRef, subscriptions [
 				log.Printf("failed to store alarm for sensorr %s: %v", s.SensorID, err)
 			}
 			continue
+		} else {
+			a.Offline = time.Time{}
 		}
 
-		if r.Voltage < threshold && a.LowVoltage.IsZero() {
+		age = now.Sub(a.LowVoltage)
+		log.Println("low voltage age", age, now, a.LowVoltage)
+		if r.Voltage < threshold && age > 24 {
 			log.Printf("voltage is below threshold: %v < %v", r.Voltage, threshold)
 			if err := raiseVoltageAlarm(m, s.SensorID, s.EmailAddress, r.Date); err != nil {
 				return fmt.Errorf("failed to send mail: %v", err)
 			}
 			a.LowVoltage = now
+		} else {
+			a.LowVoltage = time.Time{}
 		}
 
-		if r.Position.Lat == 0 && r.Position.Lng == 0 && a.GpsMissing.IsZero() {
+		age = now.Sub(a.GpsMissing)
+		if r.Position.Lat == 0 && r.Position.Lng == 0 && age.Hours() > 24 {
 			log.Printf("sensor is missing GPS lock: %v", r.Position)
 			if err := raiseGPSmissingAlarm(m, s.SensorID, s.EmailAddress, r.Date); err != nil {
 				return fmt.Errorf("failed to send mail: %v", err)
 			}
 			a.GpsMissing = now
+		} else {
+			a.GpsMissing = time.Time{}
 		}
 		if err = storeSensorAlarms(ctx, collection, s.SensorID, a); err != nil {
 			log.Printf("failed to store alarm for sensorr %s: %v", s.SensorID, err)
