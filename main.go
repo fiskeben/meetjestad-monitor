@@ -139,8 +139,12 @@ func checkSensors(m mailer, collection *firestore.CollectionRef, sensors *firest
 		}
 
 		age = now.Sub(a.LowVoltage)
+		threshold := s.Threshold
+		if threshold == 0 {
+			threshold = 3.26 // default
+		}
 		log.Println("low voltage age", age, now, a.LowVoltage)
-		if r.Voltage < s.Threshold && age > 24 {
+		if r.Voltage < threshold && age > 24 {
 			log.Printf("voltage is below threshold: %v < %v", r.Voltage, s.Threshold)
 			if err := raiseVoltageAlarm(m, s.ID, s.EmailAddress, r.Date); err != nil {
 				return fmt.Errorf("failed to send mail: %v", err)
