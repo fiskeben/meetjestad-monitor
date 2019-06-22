@@ -19,13 +19,6 @@ type Position struct {
 
 // Config holds the configuration for the service.
 type Config struct {
-	Service       Service
-	Subscriptions []Subscription
-}
-
-// Service stores the configurations for the service itself.
-type Service struct {
-	Threshold float32
 	Frequency time.Duration
 	Mailer    MailerConfig
 }
@@ -37,9 +30,10 @@ type MailerConfig struct {
 }
 
 // Subscription represents a sensor to monitor and an email address to send alarms to.
-type Subscription struct {
-	SensorID     string
-	EmailAddress string
+type Sensor struct {
+	ID           string  `firestore:"sensor_id"`
+	EmailAddress string  `firestore:"email_address"`
+	Threshold    float32 `firestore:"threshold"`
 }
 
 // Alarm represents a sensor that was below the threshold and an email has been sent.
@@ -50,13 +44,9 @@ type Alarm struct {
 }
 
 var defaultConfig = Config{
-	Service: Service{
-		Threshold: 3.33,
-		Frequency: time.Duration(3600000000000),
-		Mailer: MailerConfig{
-			Domain:  "monitoring.meetjescraper.online",
-			APIBase: "https://api.eu.mailgun.net/v3",
-		},
+	Frequency: time.Duration(3600000000000),
+	Mailer: MailerConfig{
+		Domain:  "monitoring.meetjescraper.online",
+		APIBase: "https://api.eu.mailgun.net/v3",
 	},
-	Subscriptions: make([]Subscription, 0, 0),
 }
