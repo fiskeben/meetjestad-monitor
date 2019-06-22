@@ -1,4 +1,4 @@
-# meetjebatterij
+# meetjestad-monitor
 
 A health monitoring service for
 [Meet je stad](http://meetjestad.net)
@@ -22,7 +22,7 @@ account.
 
 ## Building
 
-Run `make meetjebatterij` to download dependencies and compile the program for your platform.
+Run `make meetjestad-monitor` to download dependencies and compile the program for your platform.
 
 The `Makefile` also offers a `dist` target to compile for Linux
 which is a common thing to do if you want to deploy the service somewhere.
@@ -74,6 +74,6 @@ The API key must be set as an environment variable called
 
 ### Running
 
-To run the service just execute `meetjebatterij`,
-for example `./meetjebatterij > service.log 2>&1 &`
+To run the service just execute `meetjestad-monitor`,
+for example `./meetjestad-monitor > service.log 2>&1 &`
 to write the logs to a file called `service.log`.

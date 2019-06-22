@@ -1,12 +1,12 @@
 PHONY: clean
 
-meetjebatterij:$(shell find . -name "*.go")
+meetjestad-monitor:$(shell find . -name "*.go")
 	go mod download
-	go build .
+	go build -mod vendor .
 
 dist:
 	go mod download
-	GOOS=linux go build -tags netgo -ldflags '-w -s' -o meetjebatterij-linux .
+	GOOS=linux go build -tags netgo -ldflags '-w -s' -o meetjestad-monitor-linux .
 
-clean:meetjebatterij
-	rm meetjebatterij
+clean:meetjestad-monitor
+	rm meetjestad-monitor*

@@ -1,9 +1,9 @@
-module github.com/fiskeben/meetjebatterij
+module github.com/fiskeben/meetjestad-monitor
 
 go 1.12
 
 require (
-	cloud.google.com/go v0.40.0 // indirect
+	cloud.google.com/go v0.40.0
 	firebase.google.com/go v3.8.1+incompatible
 	github.com/go-chi/chi v4.0.2+incompatible // indirect
 	github.com/golang/mock v1.3.1 // indirect
@@ -26,7 +26,7 @@ require (
 	google.golang.org/api v0.6.0
 	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601 // indirect
-	google.golang.org/grpc v1.21.1 // indirect
+	google.golang.org/grpc v1.21.1
 	gopkg.in/yaml.v2 v2.2.2
 	honnef.co/go/tools v0.0.0-20190614002413-cb51c254f01b // indirect
 )
