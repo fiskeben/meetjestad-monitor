@@ -3,6 +3,10 @@
 A health monitoring service for
 [Meet je stad](http://meetjestad.net)
 weather stations.
+Also check out
+[the UI](https://github.com/fiskeben/meetjestad-monitor-ui)
+and 
+[monitor your own weather station](https://monitoring.meetjescraper.online).
 
 ## Features
 
