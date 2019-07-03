@@ -44,6 +44,7 @@ The structure of the file is like this:
 ```yaml
 frequency: 1h # duration to wait between checks
 mailer:
+  secretPath: /path/to/file/with/mailgun.key
   domain: yourdomain.com # the domain Mailgun is configured for
   apibase: "https://api.eu.mailgun.net/v3" # for non-US domains
 ```
@@ -69,16 +70,17 @@ Once Mailgun is ready you have to configure this service as follows:
 
 All of these values can be found on the domain's page in Mailgun.
 
-The API key must be set as an environment variable called
-`MEETJESCRAPER_MAILGUN_API_KEY`.
-If you leave it out, mails are printed to the log.
+Put the API key in a file on disk
+(remember to limit access to it)
+and set the `mailer.secretPath` to the path.
+If you leave the secret out, mails are printed to the log.
 This can be useful for testing.
 
 ### Firestore
 
 To give the service access to Firestore
-you need to set up a service account
-keep the config file in the same folder as the binary.
+you need to set up a service account.
+Keep the config file in the same folder as the binary.
 Name the file `serviceaccount.json`.
 
 The service requires two collections:

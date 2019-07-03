@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -19,10 +18,6 @@ import (
 )
 
 func main() {
-	var mailerSecretPath string
-	flag.StringVar(&mailerSecretPath, "m", "", "path to file holding Mailgun secret")
-	flag.Parse()
-
 	ctx := context.Background()
 
 	config, err := readConfig()
@@ -44,7 +39,7 @@ func main() {
 	alarms := fs.Collection("alarms")
 	sensors := fs.Collection("sensors")
 
-	m, err := newMailer(mailerSecretPath)
+	m, err := newMailer(config.Mailer.SecretPath)
 	if err != nil {
 		log.Fatalln(err)
 	}

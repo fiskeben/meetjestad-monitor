@@ -25,8 +25,9 @@ type Config struct {
 
 // MailerConfig stores configuration for Mailgun.
 type MailerConfig struct {
-	Domain  string
-	APIBase string
+	SecretPath string
+	Domain     string
+	APIBase    string
 }
 
 // Subscription represents a sensor to monitor and an email address to send alarms to.
