@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
-	"os"
 	"time"
 
 	"github.com/mailgun/mailgun-go/v3"
@@ -32,18 +32,27 @@ const (
 	domain = "monitoring.meetjescraper.online"
 )
 
-func newMailer() (mailer, error) {
+func newMailer(path string) (mailer, error) {
+	if path == "" {
+		return newDummyMailer()
+	}
+
 	var mg mailgun.Mailgun
 
-	apiKey := os.Getenv("MEETJESCRAPER_MAILGUN_API_KEY")
-	if apiKey == "" {
-		log.Println("missing Mailgun API key (set MEETJESCRAPER_MAILGUN_API_KEY environment variable)")
-		log.Println("printing mails to log instead")
-		mg = logMailer{instance: mailgun.NewMailgun("", "")}
-	} else {
-		mg = mailgun.NewMailgun(domain, apiKey)
-		mg.SetAPIBase("https://api.eu.mailgun.net/v3")
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return mailer{}, fmt.Errorf("unable to read Mailgun secrets file: %v", err)
 	}
+	apiKey := string(b)
+	mg = mailgun.NewMailgun(domain, apiKey)
+	mg.SetAPIBase("https://api.eu.mailgun.net/v3")
+
+	return mailer{mg: mg}, nil
+}
+
+func newDummyMailer() (mailer, error) {
+	log.Println("using dummy mailer: printing mails to log")
+	mg := logMailer{instance: mailgun.NewMailgun("", "")}
 
 	return mailer{mg: mg}, nil
 }

@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
 
-	firebase "firebase.google.com/go"
 	"cloud.google.com/go/firestore"
+	firebase "firebase.google.com/go"
 	"google.golang.org/api/iterator"
 
 	"google.golang.org/api/option"
@@ -18,6 +19,10 @@ import (
 )
 
 func main() {
+	var mailerSecretPath string
+	flag.StringVar(&mailerSecretPath, "m", "", "path to file holding Mailgun secret")
+	flag.Parse()
+
 	ctx := context.Background()
 
 	config, err := readConfig()
@@ -39,7 +44,7 @@ func main() {
 	alarms := fs.Collection("alarms")
 	sensors := fs.Collection("sensors")
 
-	m, err := newMailer()
+	m, err := newMailer(mailerSecretPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -97,7 +102,7 @@ func checkSensors(m mailer, collection *firestore.CollectionRef, sensors *firest
 		if err != nil {
 			if err == iterator.Done {
 				log.Println("done checking")
-				return nil 
+				return nil
 			}
 			return err
 		}
