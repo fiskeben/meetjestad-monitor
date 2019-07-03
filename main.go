@@ -97,7 +97,7 @@ func checkSensors(m mailer, collection *firestore.CollectionRef, sensors *firest
 		if err != nil {
 			if err == iterator.Done {
 				log.Println("done checking")
-				return nil
+				return nil 
 			}
 			return err
 		}
