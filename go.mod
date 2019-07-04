@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.40.0
 	firebase.google.com/go v3.8.1+incompatible
 	github.com/go-chi/chi v4.0.2+incompatible // indirect
+	github.com/go-test/deep v1.0.1
 	github.com/golang/mock v1.3.1 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/pprof v0.0.0-20190515194954-54271f7e092f // indirect
@@ -13,6 +14,7 @@ require (
 	github.com/kr/pty v1.1.5 // indirect
 	github.com/mailgun/mailgun-go/v3 v3.5.0
 	github.com/mailru/easyjson v0.0.0-20190620125010-da37f6c1e481 // indirect
+	github.com/stretchr/testify v1.3.0
 	go.opencensus.io v0.22.0 // indirect
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443 // indirect
 	golang.org/x/exp v0.0.0-20190510132918-efd6b22b2522 // indirect

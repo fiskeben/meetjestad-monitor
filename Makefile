@@ -1,8 +1,11 @@
-PHONY: clean
+PHONY: clean dist test
 
 meetjestad-monitor:$(shell find . -name "*.go")
 	go mod download
 	go build -mod vendor .
+
+test:
+	go test ./...
 
 dist:
 	go mod download

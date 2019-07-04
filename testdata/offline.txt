@@ -1,0 +1,12 @@
+Hi,
+
+This is an automated message to tell you that there is one or more problems with your Meet je stad weather sensor.
+
+The problems are:
+
+* The sensor has been offline since 03 Jul 19 23:12 CEST
+
+-- 
+Regards,
+
+The Meet je stad monitoring robot

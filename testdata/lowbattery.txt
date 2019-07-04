@@ -1,0 +1,12 @@
+Hi,
+
+This is an automated message to tell you that there is one or more problems with your Meet je stad weather sensor.
+
+The problems are:
+
+* The battery seems to be low: 3.25V
+
+-- 
+Regards,
+
+The Meet je stad monitoring robot
