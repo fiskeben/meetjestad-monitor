@@ -25,7 +25,7 @@ type Config struct {
 
 // MailerConfig stores configuration for Mailgun.
 type MailerConfig struct {
-	SecretPath string
+	SecretPath string `yaml:"secretPath"`
 	Domain     string
 	APIBase    string
 }
