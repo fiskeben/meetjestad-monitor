@@ -10,7 +10,7 @@ import (
 	"github.com/go-test/deep"
 )
 
-var testDate = time.Date(2019, 7, 3, 23, 12, 45, 123, time.Local)
+var testDate = time.Date(2019, 7, 3, 23, 12, 45, 123, time.UTC)
 
 func TestCompose(t *testing.T) {
 	type args struct {

@@ -12,6 +12,7 @@ var ErrSensorEOF = errors.New("no more sensors")
 type SensorIteratable interface {
 	Next(ctx context.Context, s *Sensor) error
 	Stop()
+	Store(ctx context.Context, s Sensor) error
 }
 
 type SensorCollection struct {
@@ -36,6 +37,8 @@ func (s *SensorCollection) Next(ctx context.Context, sensor *Sensor) error {
 		return err
 	}
 
+	sensor.DocumentID = snapshot.Ref.ID
+
 	return nil
 }
 
@@ -43,4 +46,13 @@ func (s *SensorCollection) Stop() {
 	if s.iterator != nil {
 		s.iterator.Stop()
 	}
+}
+
+func (a *SensorCollection) Store(ctx context.Context, sensor Sensor) error {
+	doc := a.collection.Doc(sensor.DocumentID)
+	_, err := doc.Set(ctx, sensor)
+	if err != nil {
+		return err
+	}
+	return nil
 }

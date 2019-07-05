@@ -4,7 +4,7 @@ This is an automated message to tell you that there is one or more problems with
 
 The problems are:
 
-* The sensor has been offline since 03 Jul 19 23:12 CEST
+* The sensor has been offline since 03 Jul 19 23:12 UTC
 * The battery seems to be low: 3.20V
 
 -- 

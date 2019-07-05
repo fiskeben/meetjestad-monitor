@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"time"
 
 	firebase "firebase.google.com/go"
@@ -32,7 +33,7 @@ func main() {
 	}
 
 	sc := SensorCollection{collection: fs.Collection("sensors")}
-	ac := AlarmsCollection{collection: fs.Collection("alarms")}
+	sr := httpSensorReader{client: http.DefaultClient}
 
 	m, err := newMailer(config.Mailer.SecretPath)
 	if err != nil {
@@ -40,7 +41,7 @@ func main() {
 	}
 
 	// check all sensors at start, otherwise it will wait until the first tick
-	if err := checkSensors(m, &ac, &sc); err != nil {
+	if err := checkSensors(m, &sr, &sc); err != nil {
 		panic(err)
 	}
 
@@ -51,7 +52,7 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			if err := checkSensors(m, &ac, &sc); err != nil {
+			if err := checkSensors(m, &sr, &sc); err != nil {
 				log.Println(err)
 			}
 		}

@@ -35,6 +35,9 @@ type Sensor struct {
 	ID           string  `firestore:"sensor_id"`
 	EmailAddress string  `firestore:"email_address"`
 	Threshold    float32 `firestore:"threshold"`
+	Owner        string  `firestore:"owner"`
+	Alarms       Alarm   `firestore:"alarms"`
+	DocumentID   string
 }
 
 // Alarm represents a sensor that was below the threshold and an email has been sent.

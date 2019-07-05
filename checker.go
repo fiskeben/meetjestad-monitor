@@ -11,7 +11,46 @@ import (
 
 var nowFunc = time.Now
 
-func checkSensors(m Mailer, alarms AlarmGetterStorer, sensors SensorIteratable) error {
+type sensorReader interface {
+	Read(r *Reading) error
+}
+
+type httpSensorReader struct {
+	client *http.Client
+}
+
+func (h *httpSensorReader) Read(r *Reading) error {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://meetjescraper.online/?sensor=%s&limit=1", r.SensorID), nil)
+	if err != nil {
+		return err
+	}
+	res, err := h.client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+	var data []Reading
+	d := json.NewDecoder(res.Body)
+	if err := d.Decode(&data); err != nil {
+		return err
+	}
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	v := data[0]
+
+	r.Position = v.Position
+	r.Date = v.Date
+	r.Voltage = v.Voltage
+	r.Firmware = v.Firmware
+
+	return nil
+}
+
+func checkSensors(m Mailer, c sensorReader, sensors SensorIteratable) error {
 	log.Printf("checking sensors")
 	ctx := context.Background()
 
@@ -27,30 +66,24 @@ func checkSensors(m Mailer, alarms AlarmGetterStorer, sensors SensorIteratable) 
 		}
 
 		log.Printf("checking %v", s)
+		r := Reading{SensorID: s.ID}
 
-		a, err := alarms.Get(ctx, s.ID)
-		if err != nil {
-			log.Printf("error getting alarms for %s: %v", s.ID, err)
-			continue
-		}
-
-		log.Printf("checking %s", s.ID)
-		r, err := readSensor(s.ID)
-		if err != nil {
+		if err := c.Read(&r); err != nil {
 			log.Printf("error reading sensor, unable to monitor: %v", err)
 			continue
 		}
 
-		a = compareSensorData(s, r, a)
+		a := compareSensorData(s, r)
 
 		noTime := time.Time{}
 		if a.Offline != noTime || a.LowVoltage != noTime || a.GpsMissing != noTime {
-			if err = composeAndSendAlarm(ctx, m, s, a, r); err != nil {
+			if err := composeAndSendAlarm(ctx, m, s, a, r); err != nil {
 				log.Print(err)
 				continue
 			}
 		}
-		if err = alarms.Store(ctx, s.ID, a); err != nil {
+		s.Alarms = a
+		if err := sensors.Store(ctx, s); err != nil {
 			log.Printf("failed to store alarm for sensor %s: %v", s.ID, err)
 		}
 	}
@@ -58,33 +91,11 @@ func checkSensors(m Mailer, alarms AlarmGetterStorer, sensors SensorIteratable) 
 	return nil
 }
 
-func readSensor(sensorID string) (Reading, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://meetjescraper.online/?sensor=%s&limit=1", sensorID), nil)
-	if err != nil {
-		return Reading{}, err
-	}
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return Reading{}, err
-	}
-
-	defer res.Body.Close()
-	var data []Reading
-	d := json.NewDecoder(res.Body)
-	if err := d.Decode(&data); err != nil {
-		return Reading{}, err
-	}
-
-	if len(data) == 0 {
-		return Reading{Voltage: 999}, nil
-	}
-
-	return data[0], nil
-}
-
-func compareSensorData(s Sensor, r Reading, a Alarm) Alarm {
+func compareSensorData(s Sensor, r Reading) Alarm {
 	now := nowFunc()
-	log.Printf("sensor data %v", r)
+	log.Printf("sensor data %v at %v", r, now)
+
+	a := s.Alarms
 
 	var res Alarm
 
