@@ -9,7 +9,7 @@ test:
 
 dist:
 	go mod download
-	GOOS=linux go build -tags netgo -ldflags '-w -s' -o meetjestad-monitor-linux .
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags netgo -ldflags '-w -s' -o meetjestad-monitor-linux .
 
 clean:meetjestad-monitor
 	rm meetjestad-monitor*
