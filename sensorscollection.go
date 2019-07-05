@@ -46,6 +46,7 @@ func (s *SensorCollection) Stop() {
 	if s.iterator != nil {
 		s.iterator.Stop()
 	}
+	s.iterator = nil
 }
 
 func (a *SensorCollection) Store(ctx context.Context, sensor Sensor) error {
