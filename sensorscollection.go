@@ -51,7 +51,9 @@ func (s *SensorCollection) Stop() {
 
 func (a *SensorCollection) Store(ctx context.Context, sensor Sensor) error {
 	doc := a.collection.Doc(sensor.DocumentID)
-	_, err := doc.Set(ctx, sensor)
+	_, err := doc.Update(ctx, []firestore.Update{
+		{Path: "alarms", Value: sensor.Alarms},
+	})
 	if err != nil {
 		return err
 	}
